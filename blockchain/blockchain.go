@@ -7,40 +7,13 @@ import (
 )
 
 type block struct {
-	Data     string
-	Hash     string
-	PrevHash string
+	data     string
+	hash     string
+	prevHash string
 }
 
 type blockchain struct {
 	blocks []*block
-}
-
-func (b *block) setHash() {
-	hash := sha256.Sum256([]byte(b.Data))
-	b.Hash = fmt.Sprintf("%x", hash)
-}
-
-func (b *blockchain) AddBlock(data string) {
-	b.blocks = append(b.blocks, createBlock(data))
-}
-
-func (b *blockchain) AllBlocks() []*block {
-	return GetBlockChain().blocks
-}
-
-func createBlock(data string) *block {
-	newBlock := block{data, "", getLastHash()}
-	newBlock.setHash()
-	return &newBlock
-}
-
-func getLastHash() string {
-	totalLength := len(GetBlockChain().blocks)
-	if totalLength == 0 {
-		return ""
-	}
-	return GetBlockChain().blocks[totalLength-1].Hash
 }
 
 var b *blockchain
@@ -50,8 +23,35 @@ func GetBlockChain() *blockchain {
 	if b == nil {
 		once.Do(func() {
 			b = &blockchain{}
-			b.AddBlock("genesisBlock")
+			b.AddBlock("genesis")
 		})
 	}
 	return b
+}
+
+func (b *blockchain) AddBlock(data string) {
+	b.blocks = append(b.blocks, CreateBlock(data))
+}
+
+func CreateBlock(data string) *block {
+	newBlock := block{data, "", getLastHash()}
+	newBlock.hash = calculateHash(newBlock.data, newBlock.prevHash)
+	return &newBlock
+}
+
+func calculateHash(data string, prevHash string) string {
+	hash := sha256.Sum256([]byte(data + prevHash))
+	return fmt.Sprintf("%x", hash)
+}
+
+func getLastHash() string {
+	totalBlockCount := len(GetBlockChain().blocks)
+	if totalBlockCount == 0 {
+		return ""
+	}
+	return GetBlockChain().blocks[totalBlockCount-1].hash
+}
+
+func (b *blockchain) AllBlocks() []*block {
+	return b.blocks
 }
