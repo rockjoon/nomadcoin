@@ -1,15 +1,7 @@
 package main
 
-import (
-	"fmt"
-	"github.com/rockjoon/nomadcoin/blockchain"
-)
+import "github.com/rockjoon/nomadcoin/explorer"
 
 func main() {
-	chain := blockchain.GetBlockChain()
-	chain.AddBlock("second")
-	chain.AddBlock("thrid")
-	for _, block := range chain.AllBlocks() {
-		fmt.Println(block)
-	}
+	explorer.Start()
 }
