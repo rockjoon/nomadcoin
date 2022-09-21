@@ -1,7 +1,9 @@
 package main
 
-import "github.com/rockjoon/nomadcoin/explorer"
+import (
+	"github.com/rockjoon/nomadcoin/rest"
+)
 
 func main() {
-	explorer.Start()
+	rest.Start(4000)
 }
