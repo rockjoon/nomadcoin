@@ -1,6 +1,7 @@
 package explorer
 
 import (
+	"fmt"
 	"github.com/rockjoon/nomadcoin/blockchain"
 	"log"
 	"net/http"
@@ -13,18 +14,20 @@ type homeData struct {
 }
 
 const (
-	port        string = ":4000"
 	templateDir string = "explorer/template/"
 )
 
 var templates *template.Template
 
-func Start() {
+func Start(aPort int) {
+	port := fmt.Sprintf(":%d", aPort)
 	templates = template.Must(template.ParseGlob(templateDir + "pages/*.gohtml"))
 	templates = template.Must(templates.ParseGlob(templateDir + "partials/*.gohtml"))
-	http.HandleFunc("/", handleHome)
-	http.HandleFunc("/add", handleAdd)
-	log.Fatal(http.ListenAndServe(port, nil))
+	handler := http.NewServeMux()
+	handler.HandleFunc("/", handleHome)
+	handler.HandleFunc("/add", handleAdd)
+	log.Printf("Listening on http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, handler))
 }
 
 func handleHome(rw http.ResponseWriter, r *http.Request) {
