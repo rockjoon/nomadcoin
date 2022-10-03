@@ -18,3 +18,8 @@ func ToBytes(i interface{}) []byte {
 	HandleError(encoder.Encode(i))
 	return aBuffer.Bytes()
 }
+
+func FromBytes(from []byte, to interface{}) {
+	decoder := gob.NewDecoder(bytes.NewReader(from))
+	HandleError(decoder.Decode(to))
+}
