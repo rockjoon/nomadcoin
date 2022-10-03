@@ -43,3 +43,18 @@ func (b *blockchain) AddBlock(data string) {
 func (b *blockchain) persist() {
 	db.SaveBlockChain(b)
 }
+
+func (b *blockchain) AllBlocks() []*Block {
+	var blocks []*Block
+	blockCursor := b.NewestHash
+	for {
+		block, _ := FindBlock(blockCursor)
+		blocks = append(blocks, block)
+		if block.PrevHash != "" {
+			blockCursor = block.PrevHash
+		} else {
+			return blocks
+		}
+	}
+
+}

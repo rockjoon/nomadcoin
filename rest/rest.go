@@ -8,7 +8,6 @@ import (
 	"github.com/rockjoon/nomadcoin/utils"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 var port string
@@ -35,21 +34,28 @@ func (u URL) MarshalText() ([]byte, error) {
 	return []byte(url), nil
 }
 
+func jsonContentTypeMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Header().Add("Content-Type", "application/json")
+		next.ServeHTTP(rw, r)
+	})
+}
+
 func Start(aPort int) {
 	port = fmt.Sprintf(":%d", aPort)
 	router := mux.NewRouter()
+	router.Use(jsonContentTypeMiddleware)
 	router.HandleFunc("/", documentation).Methods(http.MethodGet)
 	router.HandleFunc("/blocks", blocks).Methods(http.MethodGet, http.MethodPost)
-	router.HandleFunc("/blocks/{height:[0-9]+}", block).Methods(http.MethodGet)
+	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods(http.MethodGet)
 	log.Printf("listening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
 }
 
 func block(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	height, err := strconv.Atoi(vars["height"])
-	utils.HandleError(err)
-	block, err := blockchain.GetBlockChain().GetBlock(height)
+	hash := vars["hash"]
+	block, err := blockchain.FindBlock(hash)
 	encoder := json.NewEncoder(rw)
 	if err != nil {
 		encoder.Encode(errorResponse{fmt.Sprint(err)})
@@ -62,7 +68,6 @@ func block(rw http.ResponseWriter, r *http.Request) {
 func blocks(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		rw.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(rw).Encode(blockchain.GetBlockChain().AllBlocks())
 	case http.MethodPost:
 		var addBlockBody addBlockBody
@@ -91,13 +96,12 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Payload:     "Block data",
 		},
 		{
-			Url:         URL("/blocks/{height}"),
+			Url:         URL("/blocks/{hash}"),
 			Method:      "GET",
 			Description: "See a block",
-			Payload:     "Block height",
+			Payload:     "Block hash",
 		},
 	}
-	rw.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(rw).Encode(data)
 
 }

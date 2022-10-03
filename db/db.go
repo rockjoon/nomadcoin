@@ -29,6 +29,10 @@ func DB() *bolt.DB {
 	return db
 }
 
+func Close() {
+	DB().Close()
+}
+
 func Save(bucket Bucket, key string, value interface{}) {
 	err := DB().Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(bucket))
@@ -51,6 +55,16 @@ func GetCheckPoint() []byte {
 	DB().View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(DataBucket))
 		data = bucket.Get([]byte(checkpoint))
+		return nil
+	})
+	return data
+}
+
+func Block(hash string) []byte {
+	var data []byte
+	DB().View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BlocksBucket))
+		data = bucket.Get([]byte(hash))
 		return nil
 	})
 	return data
