@@ -1,17 +1,20 @@
 package blockchain
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"github.com/rockjoon/nomadcoin/db"
 	"github.com/rockjoon/nomadcoin/utils"
+	"strings"
+	"time"
 )
 
 type Block struct {
-	Data     string
-	Hash     string
-	PrevHash string
-	Height   int
+	Data       string `json:"data"`
+	Hash       string `json:"hash"`
+	PrevHash   string `json:"prev_hash"`
+	Height     int    `json:"height"`
+	Difficulty int    `json:"difficulty"`
+	Nonce      int    `json:"nonce"`
+	Timestamp  int    `json:"timestamp"`
 }
 
 func (b *Block) persist() {
@@ -24,15 +27,29 @@ func (b *Block) restore(blockBytes []byte) {
 
 func createBlock(data string, prevhash string, height int) *Block {
 	block := Block{
-		Data:     data,
-		PrevHash: prevhash,
-		Height:   height,
+		Data:       data,
+		Hash:       "",
+		PrevHash:   prevhash,
+		Height:     height,
+		Difficulty: GetBlockChain().difficulty(),
+		Nonce:      0,
+		Timestamp:  int(time.Now().Unix()),
 	}
-	payload := data + prevhash + fmt.Sprint(height)
-	block.Hash = fmt.Sprintf("%x", sha256.Sum256([]byte(payload)))
-	fmt.Println(block)
+	block.Hash, block.Timestamp = block.mine()
 	block.persist()
 	return &block
+}
+
+func (b *Block) mine() (string, int) {
+	target := strings.Repeat("0", b.Difficulty)
+
+	for {
+		hash := utils.Hash(b)
+		if strings.HasPrefix(hash, target) {
+			return hash, int(time.Now().Unix())
+		}
+		b.Nonce++
+	}
 }
 
 func FindBlock(hash string) (*Block, error) {

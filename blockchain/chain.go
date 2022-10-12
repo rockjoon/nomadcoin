@@ -7,17 +7,25 @@ import (
 )
 
 type blockchain struct {
-	NewestHash string `json:"newestHash"`
-	Height     int    `json:"height"`
+	NewestHash        string `json:"newestHash"`
+	Height            int    `json:"height"`
+	CurrentDifficulty int    `json:"current_difficulty"`
 }
 
 var b *blockchain
 var once sync.Once
 
+const (
+	defaultDifficulty       int = 2
+	difficultyInterval      int = 3
+	allowedMiningSecondsMin int = 30
+	allowedMiningSecondsMax int = 40
+)
+
 func GetBlockChain() *blockchain {
 	if b == nil {
 		once.Do(func() {
-			b = &blockchain{"", 0}
+			b = &blockchain{Height: 0}
 			checkpoint := db.GetCheckPoint()
 			if checkpoint == nil {
 				b.AddBlock("genesis")
@@ -33,10 +41,38 @@ func (b *blockchain) restore(data []byte) {
 	utils.FromBytes(data, b)
 }
 
+func (b *blockchain) difficulty() int {
+	if b.Height == 0 {
+		return defaultDifficulty
+	}
+	if b.Height%difficultyInterval == 0 {
+		return b.recalculateDifficulty()
+	}
+	return b.CurrentDifficulty
+}
+
+func (b *blockchain) recalculateDifficulty() int {
+	blocks := b.AllBlocks()
+	newestBlock := blocks[0]
+	lastRecalculated := blocks[difficultyInterval-1]
+	actualTime := newestBlock.Timestamp - lastRecalculated.Timestamp
+	if actualTime > allowedMiningSecondsMax {
+		if b.CurrentDifficulty == 1 {
+			return b.CurrentDifficulty
+		}
+		return b.CurrentDifficulty - 1
+	}
+	if actualTime < allowedMiningSecondsMin {
+		return b.CurrentDifficulty + 1
+	}
+	return b.CurrentDifficulty
+}
+
 func (b *blockchain) AddBlock(data string) {
 	block := createBlock(data, b.NewestHash, b.Height+1)
 	b.NewestHash = block.Hash
 	b.Height = block.Height
+	b.CurrentDifficulty = block.Difficulty
 	b.persist()
 }
 
