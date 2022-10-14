@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rockjoon/nomadcoin/blockchain"
-	"github.com/rockjoon/nomadcoin/utils"
 	"log"
 	"net/http"
 )
@@ -21,12 +20,13 @@ type urlDescription struct {
 	Payload     string `json:"payload,omitempty"`
 }
 
-type addBlockBody struct {
-	Data string
-}
-
 type errorResponse struct {
 	ErrorMessage string `json:"errorMessage"`
+}
+
+type balanceResponse struct {
+	Address string `json:"owner"`
+	Balance int    `json:"balance"`
 }
 
 func (u URL) MarshalText() ([]byte, error) {
@@ -49,8 +49,23 @@ func Start(aPort int) {
 	router.HandleFunc("/status", status).Methods(http.MethodGet)
 	router.HandleFunc("/blocks", blocks).Methods(http.MethodGet, http.MethodPost)
 	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods(http.MethodGet)
+	router.HandleFunc("/balance/{address}", balance).Methods(http.MethodGet)
 	log.Printf("listening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
+}
+
+func balance(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	address := vars["address"]
+	total := r.URL.Query().Get("total")
+	switch total {
+	case "true":
+		balance := blockchain.GetBlockChain().BalanceByAddress(address)
+		json.NewEncoder(rw).Encode(balanceResponse{address, balance})
+		break
+	default:
+		json.NewEncoder(rw).Encode(blockchain.GetBlockChain().TxOutsByAddress(address))
+	}
 }
 
 func status(rw http.ResponseWriter, r *http.Request) {
@@ -75,9 +90,7 @@ func blocks(rw http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		json.NewEncoder(rw).Encode(blockchain.GetBlockChain().AllBlocks())
 	case http.MethodPost:
-		var addBlockBody addBlockBody
-		utils.HandleError(json.NewDecoder(r.Body).Decode(&addBlockBody))
-		blockchain.GetBlockChain().AddBlock(addBlockBody.Data)
+		blockchain.GetBlockChain().AddBlock()
 		rw.WriteHeader(http.StatusCreated)
 	}
 }
@@ -110,6 +123,12 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Method:      "GET",
 			Description: "See a block",
 			Payload:     "Block hash",
+		},
+		{
+			Url:         URL("/balance/{address}"),
+			Method:      "GET",
+			Description: "See a balance of address",
+			Payload:     "address",
 		},
 	}
 	json.NewEncoder(rw).Encode(data)
