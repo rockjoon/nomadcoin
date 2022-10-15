@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rockjoon/nomadcoin/blockchain"
+	"github.com/rockjoon/nomadcoin/utils"
 	"log"
 	"net/http"
 )
@@ -22,6 +23,11 @@ type urlDescription struct {
 
 type errorResponse struct {
 	ErrorMessage string `json:"errorMessage"`
+}
+
+type addTxPayload struct {
+	To     string
+	Amount int
 }
 
 type balanceResponse struct {
@@ -50,8 +56,31 @@ func Start(aPort int) {
 	router.HandleFunc("/blocks", blocks).Methods(http.MethodGet, http.MethodPost)
 	router.HandleFunc("/blocks/{hash:[a-f0-9]+}", block).Methods(http.MethodGet)
 	router.HandleFunc("/balance/{address}", balance).Methods(http.MethodGet)
+	router.HandleFunc("/mempool", mempool).Methods(http.MethodGet)
+	router.HandleFunc("/transactions", transactions).Methods(http.MethodGet, http.MethodPost)
 	log.Printf("listening on http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, router))
+}
+
+func transactions(rw http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		break
+	case http.MethodPost:
+		var payload addTxPayload
+		utils.HandleError(json.NewDecoder(r.Body).Decode(&payload))
+		err := blockchain.Mempool.AddTxs(payload.To, payload.Amount)
+		if err != nil {
+			json.NewEncoder(rw).Encode(errorResponse{fmt.Sprint(err)})
+			rw.WriteHeader(http.StatusBadRequest)
+		} else {
+			rw.WriteHeader(http.StatusCreated)
+		}
+	}
+}
+
+func mempool(rw http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(rw).Encode(blockchain.Mempool.Txs)
 }
 
 func balance(rw http.ResponseWriter, r *http.Request) {

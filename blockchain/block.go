@@ -27,7 +27,7 @@ func (b *Block) restore(blockBytes []byte) {
 
 func createBlock(prevhash string, height int) *Block {
 	block := Block{
-		Transactions: []*Tx{makeCoinbaseTx("joon")},
+		Transactions: Mempool.TxToConfirm(),
 		Hash:         "",
 		PrevHash:     prevhash,
 		Height:       height,
