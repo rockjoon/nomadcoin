@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"errors"
 	"github.com/rockjoon/nomadcoin/utils"
 	"time"
 )
@@ -60,8 +61,34 @@ func makeCoinbaseTx(address string) *Tx {
 	return &tx
 }
 
-func (*mempool) makeTxs(from, to string, amount int) (*Tx, error) {
-	return nil, nil
+func (m *mempool) makeTxs(from, to string, amount int) (*Tx, error) {
+	if GetBlockChain().BalanceByAddress(from) < amount {
+		return nil, errors.New("not enough balance")
+	}
+	var txIns []*TxIn
+	var txOuts []*TxOut
+	total := 0
+	uTxOuts := GetBlockChain().UTxOutsByAddress(from)
+	for _, utxOut := range uTxOuts {
+		if total > amount {
+			break
+		}
+		txIn := &TxIn{utxOut.TxID, utxOut.Index, from}
+		txIns = append(txIns, txIn)
+		total = total + utxOut.Amount
+	}
+	if change := total - amount; change > 0 {
+		txOuts = append(txOuts, &TxOut{from, change})
+	}
+	txOuts = append(txOuts, &TxOut{to, amount})
+	var tx = &Tx{
+		"",
+		int(time.Now().Unix()),
+		txIns,
+		txOuts,
+	}
+	tx.setId()
+	return tx, nil
 }
 
 func (m *mempool) AddTxs(to string, amount int) error {
@@ -74,7 +101,7 @@ func (m *mempool) AddTxs(to string, amount int) error {
 }
 
 func (m *mempool) TxToConfirm() []*Tx {
-	coinbase := makeCoinbaseTx("nico")
+	coinbase := makeCoinbaseTx("joon")
 	txs := m.Txs
 	txs = append(txs, coinbase)
 	m.Txs = nil

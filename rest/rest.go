@@ -93,7 +93,7 @@ func balance(rw http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(rw).Encode(balanceResponse{address, balance})
 		break
 	default:
-		json.NewEncoder(rw).Encode(blockchain.GetBlockChain().TxOutsByAddress(address))
+		json.NewEncoder(rw).Encode(blockchain.GetBlockChain().UTxOutsByAddress(address))
 	}
 }
 
