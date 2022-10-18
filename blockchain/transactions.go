@@ -70,7 +70,7 @@ func (m *mempool) makeTxs(from, to string, amount int) (*Tx, error) {
 	total := 0
 	uTxOuts := GetBlockChain().UTxOutsByAddress(from)
 	for _, utxOut := range uTxOuts {
-		if total > amount {
+		if total >= amount {
 			break
 		}
 		txIn := &TxIn{utxOut.TxID, utxOut.Index, from}
@@ -106,4 +106,19 @@ func (m *mempool) TxToConfirm() []*Tx {
 	txs = append(txs, coinbase)
 	m.Txs = nil
 	return txs
+}
+
+func isOnMempool(utxOut *UTxOut) bool {
+	for _, tx := range Mempool.Txs {
+		for _, txIn := range tx.TxIns {
+			if isSameTx(utxOut, txIn) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isSameTx(utxOut *UTxOut, txIn *TxIn) bool {
+	return utxOut.TxID == txIn.TxID && utxOut.Index == txIn.Index
 }
