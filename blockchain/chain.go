@@ -23,17 +23,15 @@ const (
 )
 
 func GetBlockChain() *blockchain {
-	if b == nil {
-		once.Do(func() {
-			b = &blockchain{Height: 0}
-			checkpoint := db.GetCheckPoint()
-			if checkpoint == nil {
-				b.AddBlock()
-			} else {
-				b.restore(checkpoint)
-			}
-		})
-	}
+	once.Do(func() {
+		b = &blockchain{Height: 0}
+		checkpoint := db.GetCheckPoint()
+		if checkpoint == nil {
+			b.AddBlock()
+		} else {
+			b.restore(checkpoint)
+		}
+	})
 	return b
 }
 
@@ -69,7 +67,7 @@ func recalculateDifficulty(b *blockchain) int {
 }
 
 func (b *blockchain) AddBlock() {
-	block := createBlock(b.NewestHash, b.Height+1)
+	block := createBlock(b.NewestHash, b.Height+1, difficulty(b))
 	b.NewestHash = block.Hash
 	b.Height = block.Height
 	b.CurrentDifficulty = block.Difficulty

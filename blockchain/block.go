@@ -25,13 +25,13 @@ func (b *Block) restore(blockBytes []byte) {
 	utils.FromBytes(blockBytes, b)
 }
 
-func createBlock(prevhash string, height int) *Block {
+func createBlock(prevhash string, height int, difficulty int) *Block {
 	block := Block{
 		Transactions: Mempool.TxToConfirm(),
 		Hash:         "",
 		PrevHash:     prevhash,
 		Height:       height,
-		Difficulty:   difficulty(GetBlockChain()),
+		Difficulty:   difficulty,
 		Nonce:        0,
 		Timestamp:    int(time.Now().Unix()),
 	}
