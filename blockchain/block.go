@@ -31,7 +31,7 @@ func createBlock(prevhash string, height int) *Block {
 		Hash:         "",
 		PrevHash:     prevhash,
 		Height:       height,
-		Difficulty:   GetBlockChain().difficulty(),
+		Difficulty:   difficulty(GetBlockChain()),
 		Nonce:        0,
 		Timestamp:    int(time.Now().Unix()),
 	}

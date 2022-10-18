@@ -61,14 +61,14 @@ func makeCoinbaseTx(address string) *Tx {
 	return &tx
 }
 
-func (m *mempool) makeTxs(from, to string, amount int) (*Tx, error) {
-	if GetBlockChain().BalanceByAddress(from) < amount {
+func makeTxs(from, to string, amount int) (*Tx, error) {
+	if BalanceByAddress(from, GetBlockChain()) < amount {
 		return nil, errors.New("not enough balance")
 	}
 	var txIns []*TxIn
 	var txOuts []*TxOut
 	total := 0
-	uTxOuts := GetBlockChain().UTxOutsByAddress(from)
+	uTxOuts := UTxOutsByAddress(from, GetBlockChain())
 	for _, utxOut := range uTxOuts {
 		if total >= amount {
 			break
@@ -92,7 +92,7 @@ func (m *mempool) makeTxs(from, to string, amount int) (*Tx, error) {
 }
 
 func (m *mempool) AddTxs(to string, amount int) error {
-	tx, err := m.makeTxs("joon", to, amount)
+	tx, err := makeTxs("joon", to, amount)
 	if err != nil {
 		return err
 	}

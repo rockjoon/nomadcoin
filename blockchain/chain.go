@@ -41,18 +41,18 @@ func (b *blockchain) restore(data []byte) {
 	utils.FromBytes(data, b)
 }
 
-func (b *blockchain) difficulty() int {
+func difficulty(b *blockchain) int {
 	if b.Height == 0 {
 		return defaultDifficulty
 	}
 	if b.Height%difficultyInterval == 0 {
-		return b.recalculateDifficulty()
+		return recalculateDifficulty(b)
 	}
 	return b.CurrentDifficulty
 }
 
-func (b *blockchain) recalculateDifficulty() int {
-	blocks := b.AllBlocks()
+func recalculateDifficulty(b *blockchain) int {
+	blocks := AllBlocks(b)
 	newestBlock := blocks[0]
 	lastRecalculated := blocks[difficultyInterval-1]
 	actualTime := newestBlock.Timestamp - lastRecalculated.Timestamp
@@ -73,14 +73,14 @@ func (b *blockchain) AddBlock() {
 	b.NewestHash = block.Hash
 	b.Height = block.Height
 	b.CurrentDifficulty = block.Difficulty
-	b.persist()
+	persist(b)
 }
 
-func (b *blockchain) persist() {
+func persist(b *blockchain) {
 	db.SaveBlockChain(b)
 }
 
-func (b *blockchain) AllBlocks() []*Block {
+func AllBlocks(b *blockchain) []*Block {
 	var blocks []*Block
 	blockCursor := b.NewestHash
 	for {
@@ -95,8 +95,8 @@ func (b *blockchain) AllBlocks() []*Block {
 
 }
 
-func (b *blockchain) txOuts() []*TxOut {
-	blocks := b.AllBlocks()
+func txOuts(b *blockchain) []*TxOut {
+	blocks := AllBlocks(b)
 	var txOuts []*TxOut
 	for _, block := range blocks {
 		for _, tx := range block.Transactions {
@@ -106,19 +106,19 @@ func (b *blockchain) txOuts() []*TxOut {
 	return txOuts
 }
 
-func (b *blockchain) BalanceByAddress(address string) int {
+func BalanceByAddress(address string, b *blockchain) int {
 	var balance int
-	for _, txOut := range b.UTxOutsByAddress(address) {
+	for _, txOut := range UTxOutsByAddress(address, b) {
 		balance += txOut.Amount
 	}
 	return balance
 }
 
-func (b *blockchain) UTxOutsByAddress(address string) []*UTxOut {
+func UTxOutsByAddress(address string, b *blockchain) []*UTxOut {
 	var utxOuts []*UTxOut
 	creatorTxs := make(map[string]bool)
 
-	for _, block := range b.AllBlocks() {
+	for _, block := range AllBlocks(b) {
 		for _, tx := range block.Transactions {
 			for _, txIn := range tx.TxIns {
 				if txIn.Owner == address {
